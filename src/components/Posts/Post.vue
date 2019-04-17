@@ -1,6 +1,6 @@
 <template>
   <v-container v-if="getPost" class=" mb-5" flexbox center>
-    <v-flex xs10 offset-xs1>
+    <v-flex xs12 sm10 offset-sm1 md8 offset-md2>
       <v-layout row wrap>
         <v-flex>
           <v-card hover>
@@ -249,7 +249,7 @@
                 query: GET_POST,
                 variables: { postId: this.postId }
               });
-              data.getPost.likes++;
+              // data.getPost.likes++;
               cache.writeQuery({
                 query: GET_POST,
                 variables: { postId: this.postId },

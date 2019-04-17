@@ -84,9 +84,9 @@ export default new Vuex.Store({
         })
         .then(({ data }) => {
           console.log("action getPosts", data);
-          if (data.Post.imageUrl) {
-            data.getPosts.unshift(data.Post);
-          }
+          // if (data.Post.imageUrl) {
+          //   data.getPosts.unshift(data.Post);
+          // }
           commit("setPosts", data.getPosts);
           commit("setLoading", false);
         })
@@ -140,16 +140,24 @@ export default new Vuex.Store({
                 cache.data.parent.data.ROOT_QUERY.hasOwnProperty("getPosts"))
             ) {
               let data = cache.readQuery({ query: GET_POSTS }); //has added optRes
-              console.log("readquery", data);
-              data.getPosts.unshift(addPost);
-              // write updated data back to query
-              console.log("data.getPosts.unshift", data);
-              cache.writeQuery({
-                query: GET_POSTS,
-                data
-              });
-              console.log("writequery", cache.data.data);
-              console.log(cache.readQuery({ query: GET_POSTS }));
+              if (data.getPosts.find(post => post._id === addPost._id)) {
+                return;
+              } else {
+                console.log("readquery", data);
+                data.getPosts.unshift(addPost);
+                // write updated data back to query
+                console.log("data.getPosts.unshift", data);
+                cache.writeQuery({
+                  query: GET_POSTS,
+                  data
+                });
+              }
+              // commit(
+              //   "setPosts",
+              //   cache.readQuery({ query: GET_POSTS }).getPosts
+              // );
+              // console.log("writequery", cache.data.data);
+              // console.log("readquery 2", cache.readQuery({ query: GET_POSTS }));
             }
           },
           // optimistic response ensures data is added immidiately as we specified the update function

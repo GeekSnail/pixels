@@ -311,3 +311,13 @@ export const MSG_CREATED = gql`
     }
   }
 `;
+
+export const POST_CREATED = gql`
+  subscription {
+    postCreated {
+      _id
+      title
+      imageUrl
+    }
+  }
+`;

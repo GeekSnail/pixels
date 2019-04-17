@@ -4,6 +4,7 @@
     <v-flex sm6 offset-sm3>
       <!-- <v-card class="" color="secondary"> -->
       <v-layout>
+        <v-flex xs1></v-flex>
         <v-flex xs4>
           <v-img
             width="135px"
@@ -19,8 +20,9 @@
               <div class="headline">{{ user.username }}</div>
               <div class=" mt-3 font-weight-regular">
                 <span class="mr-2">{{ userPosts.length }} 帖子 </span>
-
                 {{ userFavorites.length }} 喜欢
+              </div>
+              <div>
                 <span class="ml-2"
                   >{{ formatCreatedDate(user.created) }} 加入.</span
                 >

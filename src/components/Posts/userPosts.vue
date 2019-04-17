@@ -28,7 +28,7 @@
           </v-card> -->
           <v-hover>
             <v-card class="mt-3 ml-1 mr-2 mx-auto" hover slot-scope="{ hover }">
-              <v-img height="30vh" :src="post.imageUrl" @click.native="goToPost(post._id)">
+              <v-img height="30vh" :src="post.imageUrl" :lazy-src="`https://picsum.photos/10/6?image=${index * 5 + 8}`" @click.native="goToPost(post._id)">
                 <v-layout>
                   <div
                     v-if="hover"
@@ -291,7 +291,41 @@
     beforeRouteLeave(to, from, next) {
       this.changePostsByRoute(to);
       next();
-    }
+    },
+    // showMorePosts() {
+    //     console.log("hello.........");
+    //     // this.pageNum++;
+    //     // fetch more data and transfrom original result
+    //     this.$apollo.queries.infiniteScrollPosts.fetchMore({
+    //       // 新的变量
+    //       variables: {
+    //         pageNum: this.infiniteScrollPosts.posts.length / pageSize + 1,
+    //         pageSize
+    //       },
+    //       // 用新数据转换之前的结果
+    //       updateQuery: (prevResult, { fetchMoreResult }) => {
+    //         console.log(
+    //           "previous result",
+    //           prevResult.infiniteScrollPosts.posts
+    //         );
+    //         console.log(
+    //           "fetch more result",
+    //           fetchMoreResult.infiniteScrollPosts
+    //         );
+    //         const newPosts = fetchMoreResult.infiniteScrollPosts.posts;
+    //         const hasMore = fetchMoreResult.infiniteScrollPosts.hasMore;
+    //         // this.showMoreEnabled = hasMore;
+    //         return {
+    //           infiniteScrollPosts: {
+    //             __typename: prevResult.infiniteScrollPosts.__typename, //PostsPage
+    //             // merge previous posts with new posts
+    //             posts: [...prevResult.infiniteScrollPosts.posts, ...newPosts],
+    //             hasMore
+    //           }
+    //         };
+    //       }
+    //     });
+    //   },
   };
 </script>
 <style scoped>

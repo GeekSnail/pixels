@@ -78,12 +78,28 @@
           </v-flex>
         </v-layout>
         <!-- fetch more button -->
-        <v-layout v-if="showMoreEnabled" column>
+        <!-- <v-layout v-if="showMoreEnabled" column>
           <v-flex xs12>
             <v-layout justify-center row>
               <v-btn color="info" @click="showMorePosts">加载更多...</v-btn>
             </v-layout>
           </v-flex>
+        </v-layout> -->
+        <v-layout class="my-3">
+          <v-container>
+            <v-layout row justify-center align-center>
+              <v-progress-circular
+                v-if="$apollo.loading"
+                indeterminate
+                :size="50"
+                :with="10"
+                color="primary"
+              ></v-progress-circular>
+            </v-layout>
+            <v-layout v-if="!showMoreEnabled" justify-center>
+              <div>没有更多了...</div>
+            </v-layout>
+          </v-container>
         </v-layout>
       </v-container>
     </v-flex>
@@ -118,6 +134,10 @@
         return this.infiniteScrollPosts && this.infiniteScrollPosts.hasMore;
       }
     },
+    mounted() {
+      window.onscroll = this.waitScrollToBottom;
+    },
+
     methods: {
       formatCreatedDate(date) {
         return moment(new Date(Number(date))).format("YYYY-MM-DD hh:mm");
@@ -126,6 +146,7 @@
         this.$router.push(`/posts/${postId}`);
       },
       showMorePosts() {
+        console.log("hello........."); //可能会同时进入两次
         // this.pageNum++;
         // fetch more data and transfrom original result
         this.$apollo.queries.infiniteScrollPosts.fetchMore({
@@ -147,6 +168,7 @@
             const newPosts = fetchMoreResult.infiniteScrollPosts.posts;
             const hasMore = fetchMoreResult.infiniteScrollPosts.hasMore;
             // this.showMoreEnabled = hasMore;
+            window.onscroll = this.waitScrollToBottom; //异步获取完数据后再恢复滚动监听
             return {
               infiniteScrollPosts: {
                 __typename: prevResult.infiniteScrollPosts.__typename, //PostsPage
@@ -157,7 +179,23 @@
             };
           }
         });
+      },
+      waitScrollToBottom() {
+        let isToBottom =
+          document.documentElement.scrollTop + window.innerHeight + 0.5 >=
+          document.documentElement.offsetHeight;
+        if (isToBottom) {
+          console.log("hi.........");
+          window.onscroll = null;
+          if (this.showMoreEnabled) {
+            this.showMorePosts();
+          }
+        }
       }
+    },
+    beforeRouteLeave(to, from, next) {
+      window.onscroll = null;
+      next();
     }
   };
 </script>
