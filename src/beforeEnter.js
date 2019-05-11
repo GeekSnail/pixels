@@ -1,5 +1,5 @@
 import store from "./store";
-
+import router from "./router";
 const option = (path, to) => {
   return {
     path,
@@ -39,6 +39,7 @@ export function auth(to, from, next) {
     // no user token
     if (!localStorage.getItem("token")) {
       console.log("user not login");
+      // router.replace(from.path);
       next();
     } // had token
     else {
@@ -46,7 +47,7 @@ export function auth(to, from, next) {
       store.watch(
         state => state.user,
         () => {
-          console.log(store.getters.user);
+          console.log(store.getters.user, to, from);
           if (!store.getters.user) {
             console.log("user token expired or invalid");
             next();
@@ -63,6 +64,22 @@ export function auth(to, from, next) {
     }
   } else {
     next("/");
+  }
+}
+export function afterAuth(to, from, next) {
+  if (!store.getters.user) {
+    // no user token
+    if (!localStorage.getItem("token")) {
+      console.log("no token");
+      next();
+    } // had token
+    else {
+      console.log("user had token");
+      store.dispatch("getCurrentUser");
+      next();
+    }
+  } else {
+    next();
   }
 }
 function loadUser(to) {

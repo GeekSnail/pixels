@@ -85,10 +85,12 @@ export default new Vuex.Store({
       commit("setLoading", true);
       apolloClient
         .query({
-          query: GET_CURRENT_USER
+          query: GET_CURRENT_USER,
+          fetchPolicy: "network-only" //
         })
         .then(({ data }) => {
           // add user data to state
+          console.log(data);
           commit("setUser", data.getCurrentUser);
           commit("setLoading", false);
           // console.log(data.getCurrentUser);
@@ -359,7 +361,7 @@ export default new Vuex.Store({
         .catch(err => console.error(err));
     },
 
-    signinUser: ({ commit }, payload) => {
+    signinUser: ({ commit, dispatch }, payload) => {
       commit("clearError");
       commit("setLoading", true);
       // clear token to prevent errors before sigin
@@ -367,13 +369,20 @@ export default new Vuex.Store({
       apolloClient
         .mutate({
           mutation: SIGNIN_USER,
-          variables: payload
+          variables: payload,
+          update: (cache, { data: { token } }) => {
+            console.log(cache, token);
+          }
         })
         .then(({ data }) => {
           commit("setLoading", false);
           localStorage.setItem("token", data.signinUser.token);
           // to make sure getCurrentUser method is run in main.js reload the page
-          router.go(0);
+          // router.go(0);
+          console.log("si", router.currentRoute);
+          dispatch("getCurrentUser");
+
+          router.replace("/");
         })
         .catch(err => {
           commit("setLoading", false);
@@ -381,7 +390,7 @@ export default new Vuex.Store({
           console.error(err);
         });
     },
-    signupUser: ({ commit }, payload) => {
+    signupUser: ({ commit, dispatch }, payload) => {
       commit("clearError");
       commit("setLoading", true);
       // clear token to prevent errors before sigin
@@ -395,7 +404,10 @@ export default new Vuex.Store({
           commit("setLoading", false);
           localStorage.setItem("token", data.signupUser.token);
           // to make sure getCurrentUser method is run in main.js reload the page
-          router.go();
+          // router.go();
+          console.log(router.currentRoute);
+          dispatch("getCurrentUser");
+          router.replace("/");
         })
         .catch(err => {
           commit("setLoading", false);

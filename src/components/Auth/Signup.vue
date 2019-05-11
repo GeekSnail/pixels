@@ -163,7 +163,9 @@
       user(newVal, oldVal) {
         // console.log(newVal, oldVal);
         // if user changes, redirect to home page
-        this.transfer(newValue);
+        if (newVal) {
+          this.transfer(newVal);
+        }
       }
     },
     methods: {
