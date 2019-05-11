@@ -1,14 +1,31 @@
 import Vue from "vue";
+import store from "./store";
 import Router from "vue-router";
-import Home from "./components/Home.vue";
-import Profile from "./components/Auth/Profile.vue";
-import Signin from "./components/Auth/Signin.vue";
-import Signup from "./components/Auth/Signup.vue";
-import Posts from "./components/Posts/Index.vue";
-import Post from "./components/Posts/Post.vue";
-import Upload from "./components/Posts/Upload.vue";
-import NotFound from "./components/NotFound";
-import AuthGuard from "./AuthGuard";
+const Home = () =>
+  import(/* webpackChunkName: "home" */ "./components/Home.vue");
+const Profile = () =>
+  import(/* webpackChunkName: "profile" */ "./components/Posts/Profile.vue");
+const Signin = () =>
+  import(
+    /* webpackChunkName: "group-signinOrup" */ "./components/Auth/Signin.vue"
+  );
+const Signup = () =>
+  import(
+    /* webpackChunkName: "group-signinOrup" */ "./components/Auth/Signup.vue"
+  );
+const Posts = () =>
+  import(/* webpackChunkName: "Posts" */ "./components/Posts/Index.vue");
+const Post = () =>
+  import(/* webpackChunkName: "Post" */ "./components/Posts/Post.vue");
+const userPosts = () =>
+  import(
+    /* webpackChunkName: "userPosts" */ "./components/Posts/userPosts.vue"
+  );
+const Upload = () =>
+  import(/* webpackChunkName: "Upload" */ "./components/Posts/Upload.vue");
+const NotFound = () =>
+  import(/* webpackChunkName: "NotFound" */ "./components/NotFound");
+import { authGuard, getUser } from "./beforeEnter";
 
 Vue.use(Router);
 
@@ -22,48 +39,13 @@ export default new Router({
       component: Home
     },
     {
-      path: "/profile",
-      // name: "profile",
-      component: Profile,
-      beforeEnter: AuthGuard,
-      meta: {
-        keepAlive: true // 需要被缓存
-      },
-      children: [
-        {
-          path: "",
-          name: "userPosts",
-          component: () =>
-            import(/* webpackChunkName: "group-profile" */ "./components/Posts/userPosts.vue")
-          // beforeEnter(to, from, next) {
-          //   console.log("en", to, from, Date.now());
-          //   next();
-          // },
-          // beforeUpdate(to, from, next) {
-          //   console.log("up", to, from, Date.now(), this.user);
-          //   next();
-          // },
-          // beforeLeave(to, from, next) {
-          //   console.log("le", to, from, Date.now(), this.user);
-          //   next();
-          // }
-        },
-        {
-          path: "likes",
-          name: "likes",
-          component: () =>
-            import(/* webpackChunkName: "group-profile" */ "./components/Posts/userPosts.vue")
-        }
-      ]
-    },
-    {
       path: "/signin",
       name: "signin",
-      component: Signin
-      // beforeEnter: (to, from, next) => {
-      //   console.log("signin", to.path, "...", from.path, Date.now());
-      //   next();
-      // }
+      component: Signin,
+      beforeEnter: (to, from, next) => {
+        console.log("signin", to.path, "...", from.path, Date.now());
+        next();
+      }
     },
     {
       path: "/signup",
@@ -73,7 +55,8 @@ export default new Router({
     {
       path: "/explorer",
       name: "Posts",
-      component: Posts
+      component: () =>
+        import(/* webpackChunkName: "Posts" */ "./components/Posts/Index.vue")
     },
     {
       path: "/posts/:postId",
@@ -85,9 +68,32 @@ export default new Router({
       path: "/upload",
       name: "upload",
       component: Upload,
-      beforeEnter: AuthGuard
+      beforeEnter: authGuard
     },
-
+    {
+      path: "/:username",
+      props: true,
+      component: Profile,
+      beforeEnter: authGuard,
+      meta: {
+        keepAlive: true // 需要被缓存
+      },
+      beforeEnter: getUser,
+      children: [
+        {
+          path: "",
+          name: "userPosts",
+          component: userPosts,
+          meta: { Tab: "" }
+        },
+        {
+          path: "likes",
+          name: "likes",
+          component: userPosts,
+          meta: { Tab: "likes" }
+        }
+      ]
+    },
     // ,{
     //   path: "/el",
     //   name: "element",

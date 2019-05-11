@@ -1,5 +1,5 @@
 <template>
-  <v-app color="secondary">
+  <v-app color="secondary" @click.native="globalClicked=true;">
     <!-- side navbar -->
     <v-navigation-drawer app temporary fixed v-model="sideNav">
       <!-- <v-toolbar color="accent" dark flat>
@@ -30,7 +30,7 @@
           <v-list-tile-content>{{item.title}}</v-list-tile-content>
         </v-list-tile>
 
-        <v-list-tile  v-if="user" to="/profile">
+        <v-list-tile  v-if="user" :to="`/${user.username}`">
           <v-list-tile-action>
             <v-img
               :src="user.avatar"
@@ -53,7 +53,7 @@
     <v-toolbar app fixed color="primary">
       <v-toolbar-side-icon @click="toggleSideNav" ></v-toolbar-side-icon>
       <!-- titile -->
-      <v-toolbar-title class="headline hidden-xs-only">
+      <v-toolbar-title :class="{'headline':true, 'hidden-xs-only':hiddenTitle}">
         <router-link to="/" tag="span" style="cursor: pointer" class="white--text">
           Pixels
         </router-link>
@@ -61,10 +61,10 @@
       </v-toolbar-title>
       <v-spacer></v-spacer>
       
-      <v-text-field v-model="searchTerm" @input="searchPosts" solo flex append-icon="mdi-magnify" placeholder="搜索图片" color="accent" single-line hide-details height="30px"></v-text-field>
-      <v-spacer></v-spacer>
+      <v-text-field v-model="searchTerm" @input="searchPosts" :solo="true" flex append-icon="mdi-magnify" placeholder="搜索图片"  single-line hide-details height="30px" class="searchField" @focus="hiddenTitle=true;globalClicked=false" @blur="hiddenTitle=false" @click.stop="globalClicked=false" ></v-text-field>
+      <v-spacer class="hidden-xs-only"></v-spacer>
       <!-- search results card -->
-      <v-card color="#fafafa" v-if="this.searchResults.length" id="search__card">
+      <v-card color="#fafafa" v-if="this.searchResults && this.searchResults.length && !globalClicked" id="search__card">
         <v-list>
           <v-list-tile v-for="result in searchResults" :key="result._id" @click="goToSearchResult(result._id)">
             <v-list-tile-title>{{result.title}} - 
@@ -85,13 +85,13 @@
           <v-icon v-if="item.hasOwnProperty('icon')" class="hidden-sm-only mr-2" left>{{item.icon}}</v-icon>
             {{item.title}}
         </v-btn>  
-        <v-btn flat to="/profile" v-if="user">
+        <v-btn flat v-push:to="`/${user.username}`" v-if="user">
             <v-img
               :src="user.avatar"
               aspect-ratio="1"
               class="grey lighten-2 mr-2 wh-24 round"></v-img>
             <v-badge right color="deep-orange lighten-3" :class="{'bounce':badgeAnimated}">
-              <span slot="badge" v-if="userFavorites.length">{{userFavorites.length}}</span>
+              <span slot="badge" v-if="user.favorites && user.favorites.length">{{user.favorites.length}}</span>
               我的
             </v-badge>
           </v-btn>  
@@ -101,10 +101,11 @@
           <v-icon class="hidden-sm-only mr-2" left>mdi-logout</v-icon>注销
         </v-btn>
       </v-toolbar-items>
+      
     </v-toolbar>
     
     <!-- main -->
-    <v-content>
+    <v-content >
       <transition name="fade">
         <keep-alive v-if="$route.meta.keepAlive">
           <router-view /><!-- 这里是会被缓存的视图组件！ -->
@@ -138,11 +139,13 @@ export default {
   name: 'App',
   data () {
     return {
+      hiddenTitle: false,
       sideNav: false,
       authSnackbar: false,
       authErrorSnackbar: false,
       badgeAnimated: false,
-      searchTerm: ''
+      searchTerm: '',
+      globalClicked: 'false',
     }
   },
   watch: {
@@ -158,7 +161,7 @@ export default {
         this.authErrorSnackbar = true
       }
     },
-    userFavorites(value) {
+    user(value) {
       // if user favorites value changed at all
       if (value) {
         this.badgeAnimated = true
@@ -167,7 +170,7 @@ export default {
     }
   },
   computed: {
-    ...mapGetters(["searchResults", "authError", "user", "userFavorites"]),
+    ...mapGetters(["searchResults", "authError", "user"]),
     horizontalNavItems() {
       let items = [
         { icon: 'mdi-compass-outline', title: '探索', link: '/explorer' },
@@ -200,6 +203,9 @@ export default {
     }
   },
   methods: {
+    test() {
+      console.log('hi')
+    },
     toggleSideNav() {
       this.sideNav = !this.sideNav
     },
@@ -223,7 +229,7 @@ export default {
       return desc.length > 30 ? `${desc.slice(0,30)}...` : desc
     },
     isUserFavorite(resultId) {
-      return (this.userFavorites && this.userFavorites.some(fave => fave._id === resultId))
+      return (this.user.favorites && this.user.favorites.some(fave => fave._id === resultId))
     }
   }
 }
@@ -267,6 +273,29 @@ export default {
   opacity 0 */
   /* transform translateX(-25px) */
   /* transform translateY(-25px) */
+>>>.searchField.v-text-field.v-text-field--solo .v-input__control
+  min-height 44px
+@media only screen and (max-width: 599px) 
+  >>>.v-toolbar__title.headline
+    width 100%
+    margin auto
+    display flex
+    & span
+      margin auto
+  .spacer 
+    //flex-grow: 100 !important;
+  >>>.searchField    
+    & .v-input__control .v-input__slot
+      width 52px
+      color white
+      background-color transparent
+    & .theme--light.v-icon 
+      color white  
+    &.v-input--is-focused 
+      width 85%
+    &.v-input--is-focused .v-input__control .v-input__slot
+      width auto
+      background-color white
 
 /* search results card */
 #search__card {

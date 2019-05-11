@@ -8,7 +8,13 @@
         </v-flex>
       </v-layout>
     </v-container> -->
-    
+    <v-img
+      width="135px"
+      class="mx-auto round"
+      contain
+      fab
+      :src="posts?posts[0]:'https://picsum.photos/10/6?image=8'"
+    ></v-img>
     <!-- <v-container class=""> -->
       <v-flex xs12>
         <!-- <h2 class="font-weight-light">
@@ -17,18 +23,18 @@
         </h2> -->
       </v-flex>
       <v-layout row wrap>
-        <v-flex xs12 sm6 md4 v-for="(post,index) in posts" :key="post._id">
+        <v-flex xs12 sm6 md4 v-if="posts" v-for="(post,index) in posts" :key="post._id">
           <!-- <v-card class="mt-3 ml-1 mr-2" hover>
             <v-img
               height="30vh"
-              :src="favorite.imageUrl"
+              :src="favorite.image.url"
               :lazy-src="`https://picsum.photos/10/6?image=${index * 5 + 10}`"
             ></v-img>
             <v-card-text>{{ favorite.title }}</v-card-text>
           </v-card> -->
           <v-hover>
-            <v-card class="mt-3 ml-1 mr-2 mx-auto" hover slot-scope="{ hover }">
-              <v-img height="30vh" :src="post.imageUrl" :lazy-src="`https://picsum.photos/10/6?image=${index * 5 + 8}`" @click.native="goToPost(post._id)">
+            <v-card v-if="post.image" class="mt-3 ml-1 mr-2 mx-auto" hover slot-scope="{ hover }">
+              <v-img height="30vh" :src="post.image.url" :lazy-src="`https://picsum.photos/10/6?image=${index * 4 + 10}`" @click.native="goToPost(post._id)">
                 <v-layout>
                   <div
                     v-if="hover"
@@ -47,15 +53,15 @@
                     }}</span>
                     <v-icon color="white" class="mr-1">mdi-comment</v-icon>
                     <span class="subheading white--text">{{
-                      post.messagesSize
+                      post.commentsSize
                     }}</span>
                   </v-layout>
                 </v-layout>
               </v-img>
               <!-- https://vuetifyjs.com/en/framework/transitions#slide-x-transitions -->
               <v-card-actions class="cardTextH">
-                <v-card-text>{{ post.title }}</v-card-text>
-                <v-flex v-if="isUserPosts" shrink >
+                <v-card-text>{{ post.description }}</v-card-text>
+                <v-flex v-if="user && post.createdBy === user.username" shrink >
                   <v-expand-x-transition>
                     <div v-show="hover" style="white-space: nowrap">
                       <v-btn @click="loadPost(post)" flat fab small>
@@ -76,20 +82,19 @@
 
     <!-- edit post dialog -->
     <v-dialog
-      xs12
+      lazy
       persistent
-      max-width="70%"
       min-width="600px"
-      class="mx-auto"
+      max-width="100%"
       v-model="isEditDialog"
-    >
+    ><v-flex xs12 sm10 offset-sm1 md8 offset-md2 lg6 offset-lg3 >
       <v-card>
         <v-card-title class="headline grey lighten-2">更新帖子</v-card-title>
         <v-container>
-          <v-layout>
+          <v-layout v-if="post">
             <!-- Image preview -->
-            <v-flex xs7 pr-4 pb-5 my-auto v-if="imageUrl" hidden-sm-only hidden-xs-only ref="preview">
-              <v-img :src="imageUrl" height="350px" class="d-block mx-auto" />
+            <v-flex xs7 pr-4 pb-5 my-auto hidden-sm-only hidden-xs-only ref="preview">
+              <v-img :src="post.image.url" height="350px" class="d-block mx-auto" contain/>
             </v-flex>
             <v-flex >
               <v-form
@@ -100,7 +105,7 @@
                 @submit.prevent="updateUserPost"
               >
                 <!-- title input -->
-                <v-layout row>
+                <!-- <v-layout row>
                   <v-flex xs12>
                     <v-text-field
                       :rules="titleRules"
@@ -111,14 +116,14 @@
                       required
                     ></v-text-field>
                   </v-flex>
-                </v-layout>
+                </v-layout> -->
 
                 <!-- image url input -->
                 <v-layout row>
                   <v-flex xs12>
                     <v-text-field
                       label="上传照片"
-                      :value="imageUrl"
+                      :value="post.image.url"
                       prepend-icon="mdi-cloud-upload-outline"
                       readOnly
                       disabled
@@ -128,7 +133,7 @@
 
                 <template>
                   <v-combobox
-                    v-model="tags"
+                    v-model="post.tags"
                     :items="tagsSearchList"
                     label="标签"
                     tags
@@ -157,7 +162,7 @@
                     <v-textarea
                       
                       :rules="descRules"
-                      v-model="description"
+                      v-model="post.description"
                       prepend-icon="mdi-card-text-outline"
                       label="描述"
                       type="text"
@@ -179,6 +184,7 @@
           </v-layout>
         </v-container>
       </v-card>
+      </v-flex>
     </v-dialog>
   </v-container>
 </template>
@@ -193,11 +199,7 @@
         isUserPosts: true,
         isEditDialog: false,
         isFormValid: true,
-        title: "",
-        imageName: "",
-        imageUrl: "",
-        imageFile: "",
-        tags: [],
+        post: null,
         tagsSearchList: [
           "art",
           "Education",
@@ -205,62 +207,115 @@
           "Photography",
           "Technology"
         ],
-        description: "",
-        titleRules: [
-          title => !!title || "标题不得为空",
-          title => title.length < 20 || "标题至多20个字符"
-        ],
+        // titleRules: [
+        //   title => !!title || "标题不得为空",
+        //   title => title.length < 20 || "标题至多20个字符"
+        // ],
         imageRules: [image => !!image || "照片不得为空"],
-        tagsRules: [tags => !!tags.length >= 1 || "至少选择一个分类"],
+        // tagsRules: [tags => !!tags.length >= 1 || "至少选择一个分类"],
         descRules: [
           desc => !!desc || "描述不得为空",
-          desc => desc.length <= 150 || "描述至多150个字符"
+          desc => !!desc && desc.length <= 150 || "描述至多150个字符"
         ]
       };
     },
     computed: {
-      ...mapGetters(["user","userFavorites", "userPosts"])
+      ...mapGetters(["user","_user"])
     },
-    created() {},
+    created() {
+      this.changePostsByRoute(this.$route);
+      console.log('_user.posts cr',!!this._user && this._user.posts)
+    },
     watch: {
-      userPosts(newVal, oldVal) {
+      _user(newVal, oldVal) {
         console.log("watch", newVal, oldVal);
-        if (newVal) {
-          // await userPosts getted
+        // if (newVal) {
+          // await _user.posts getted
           this.changePostsByRoute(this.$route);
-        }
+        // }
+      },
+      user(newVal, oldVal) {
+        console.log("watch", newVal, oldVal);
+        this.changePostsByRoute(this.$route);
       }
     },
     methods: {
       changePostsByRoute(to) {
         console.log('to',to, this.$route)
-        // console.log("le", to, from, Date.now(), this.user);
-        if (/\/profile\/?$/.test(to.fullPath)) {
-          console.log("userpost", this.userPosts);
+        // /xxx /xxx/ /likes /likes/ , /xxx/likes /xxx/likes/ /likes/likes /likes/likes/
+        if(to.path.lastIndexOf('/likes') <= 0 && to.params.hasOwnProperty('username')) {
+          console.log("userpost");
           this.isUserPosts = true;
-          this.posts = this.userPosts;
-        } else if (/\/profile\/likes\/?$/.test(to.fullPath)) {
+          if(this._user) {
+            if(this._user.posts || this._user.postsSize === 0) {
+              this.posts = this._user.posts || [];
+            } 
+            else{
+              this.getUser(to.params.username)
+            }
+          } else {
+            console.log('[usrPosts] had not _user')
+            this.getUser(to.params.username)
+          }
+        } else if(to.params.hasOwnProperty('username')) {
           console.log('likes')
           this.isUserPosts = false;
-          this.posts = this.userFavorites;
+          // if(this.user) {
+          //   if(this.user.favoritesSize && this.user.favorites[0].hasOwnProperty('description') || this.user.favoritesSize===0) {  
+          //       this.posts = this._user.favorites || []
+          //   } else {
+          //     // console.log('user fav',this.user.favorites)
+          //     this.getUser(to.params.username,false,true)
+          //   }
+          // } else 
+          if(this._user) {
+            if(this._user.favorites || this._user.favoritesSize === 0) {
+              this.posts = this._user.favorites || [];
+            } 
+            else{
+              this.getUser(to.params.username,false,true)
+            }
+          } else {
+            console.log('[userPosts] had not _user')
+            this.getUser(to.params.username)
+          }
         }
-        console.log(this.user)
-        console.log(this.posts)
+        // console.log("le", to, from, Date.now(), this._user);
+        // if (new RegExp("\/"+username+"\/?$").test(to.fullPath)) {
+        // } else if (new RegExp("\/"+username+"\/likes\/?$").test(to.fullPath)) {
+        
+        // console.log(this._user)
+        // console.log(this.posts)
+      },
+      getUser(
+        username,
+        withPosts = true,
+        withFavorites = false
+      ) {
+        console.log("getUser", withPosts, withFavorites);
+        this.$store.dispatch("getUser", {
+          username,
+          withPosts,
+          withFavorites
+        });
       },
       goToPost(postId) {
         this.$router.push(`/posts/${postId}`);
       },
-      loadPost(
-        { _id, title, imageUrl, tags, description },
-        isEditDialog = true
-      ) {
-        this.isEditDialog = isEditDialog;
-        this.postId = _id;
-        this.title = title;
-        this.imageUrl = imageUrl;
-        this.tags = tags;
-        this.description = description;
+      loadPost(post, isEditDialog = true) {
+        this.post = post
       },
+      // loadPost(
+      //   { _id, title, imageUrl, tags, description },
+      //   isEditDialog = true
+      // ) {
+      //   this.isEditDialog = isEditDialog;
+      //   this.postId = _id;
+      //   this.title = title;
+      //   this.imageUrl = imageUrl;
+      //   this.tags = tags;
+      //   this.description = description;
+      // },
       remove(item) {
         this.tags.splice(this.tags.indexOf(item), 1);
         this.tags = [...this.tags];
@@ -269,11 +324,11 @@
         // update user post action
         if(this.$refs.form.validate()) {
           this.$store.dispatch('updateUserPost', {
-            postId: this.postId,
+            postId: this.post._id,
             userId: this.user._id,
-            title: this.title,
-            tags: this.tags,
-            description: this.description
+            // title: this.title,
+            tags: this.post.tags,
+            description: this.post.description
           })
           this.isEditDialog = false
         }
@@ -283,12 +338,17 @@
         const isDeletePost = window.confirm('你确定要删除这个帖子？')
         if(isDeletePost) {
           this.$store.dispatch('deleteUserPost', {
-            postId: this.postId
+            postId: this.post._id
           })
         }
       }
     },
+    beforeRouteUpdate(to, from, next) {
+      console.log("[userPosts] beforeUpdate", to, from, this._user.username);
+      next();
+    },
     beforeRouteLeave(to, from, next) {
+      console.log("[userPosts] beforeLeave");
       this.changePostsByRoute(to);
       next();
     },
@@ -343,6 +403,10 @@
   }
   .cardTextH {
     height: 53px;
+  }
+  >>>.v-dialog {
+    box-shadow: none;
+    margin: 12px
   }
   /* .block {
     display: block;

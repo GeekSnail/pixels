@@ -19,7 +19,7 @@
           @submit.prevent="addPost"
         >
           <!-- title input -->
-          <v-layout row>
+          <!-- <v-layout row>
             <v-flex xs12>
               <v-text-field
                 solo
@@ -31,7 +31,7 @@
                 required
               ></v-text-field>
             </v-flex>
-          </v-layout>
+          </v-layout> -->
 
           <!-- image url input -->
           <v-layout row>
@@ -42,8 +42,9 @@
                 label="上传照片"
                 @click="pickFile"
                 v-model="imageName"
-                prepend-icon="mdi-cloud-upload-outline"
+                prepend-inner-icon="mdi-cloud-upload-outline"
                 required
+                readonly
               ></v-text-field>
               <input
                 type="file"
@@ -58,7 +59,7 @@
           <!-- Image preview -->
           <v-layout row v-if="imageUrl">
             <v-flex xs12>
-              <img :src="imageUrl" height="300px" alt="" />
+              <img :src="imageUrl" height="300px" alt="" ref="preview" />
             </v-flex>
           </v-layout>
 
@@ -85,7 +86,7 @@
               label="标签"
               tags
               clearable
-              prepend-icon="mdi-tag-text-outline"
+              prepend-inner-icon="mdi-tag-text-outline"
               solo
               multiple
             >
@@ -104,13 +105,13 @@
           </template>
 
           <!-- description input -->
+          <!-- prepend-innner-icon="mdi-card-text-outline" -->
           <v-layout row>
             <v-flex xs12>
               <v-textarea
                 solo
                 :rules="descRules"
                 v-model="post.description"
-                prepend-icon="mdi-card-text-outline"
                 label="描述"
                 type="text"
                 required
@@ -154,7 +155,8 @@
       return {
         isFormValid: true,
         post: {
-          title: "",
+          naturalWidth: 0,
+          naturalHeight: 0,
           tags: [],
           description: ""
         },
@@ -168,12 +170,12 @@
           "Photography",
           "Technology"
         ],
-        titleRules: [
-          title => !!title || "标题不得为空",
-          title => title.length < 20 || "标题至多20个字符"
-        ],
+        // titleRules: [
+        //   title => !!title || "标题不得为空",
+        //   title => title.length < 20 || "标题至多20个字符"
+        // ],
         imageRules: [image => !!image || "照片不得为空"],
-        tagsRules: [tags => !!tags.length >= 1 || "至少选择一个分类"],
+        // tagsRules: [tags => !!tags.length >= 1 || "至少选择一个分类"],
         descRules: [
           desc => !!desc || "描述不得为空",
           desc => desc.length <= 150 || "描述至多150个字符"
@@ -200,6 +202,14 @@
           fr.addEventListener("load", () => {
             this.imageUrl = fr.result;
             this.imageFile = files[0]; // this is an image file that can be sent to server...
+            this.$nextTick(() => {
+              let that = this;
+              this.$refs.preview.onload = function() {
+                console.log(this.naturalWidth, this.naturalHeight);
+                that.post.naturalWidth = this.naturalWidth;
+                that.post.naturalHeight = this.naturalHeight;
+              };
+            });
           });
         } else {
           this.imageName = "";
@@ -214,23 +224,22 @@
       addPost() {
         if (this.$refs.form.validate()) {
           // add post action
-          console.log(this.$apollo.queries);
           this.$store.dispatch("addPost", {
             payload: {
               ...this.post,
-              image: this.imageFile,
-              userId: this.user._id
+              userId: this.user._id,
+              image: this.imageFile
             },
             imageUrl: this.imageUrl
           });
-          this.$apollo.mutate({
-            mutation: ADD_POST_,
-            variables: {
-              ...this.post,
-              imageUrl: this.imageUrl
-              // userId: this.user._id
-            }
-          });
+          // this.$apollo.mutate({
+          //   mutation: ADD_POST_,
+          //   variables: {
+          //     ...this.post,
+          //     userId: this.user._id,
+          //     imageUrl: this.imageUrl
+          //   }
+          // });
           console.log("/upload -> /");
           this.$router.push("/");
         }

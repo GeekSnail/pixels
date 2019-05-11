@@ -16,7 +16,7 @@
 
     <!-- Signin from -->
     <v-layout row wrap>
-      <v-flex xs12 sm6 offset-sm3>
+      <v-flex xs12 sm8 offset-sm2 md6 offset-md3 lg4 offset-lg4>
         <v-card color="">
           <v-container>
             <v-form
@@ -45,7 +45,10 @@
                     v-model="password"
                     prepend-icon="mdi-lock-outline"
                     label="密码"
-                    type="password"
+                    :append-icon="showPassword ? 'mdi-eye-outline' : 'mdi-eye-off-outline'"
+                    :type="showPassword ? 'text' : 'password'"
+                    @click:append="showPassword = !showPassword"
+                    autocomplete
                     required
                   ></v-text-field>
                 </v-flex>
@@ -69,7 +72,10 @@
                   >
                   <h3>
                     还没有账户？
-                    <router-link to="/signup">注 册</router-link>
+                    <router-link
+                      :to="{path:'/signup', query:redirect?{redirect}:null}"
+                      >注 册</router-link
+                    >
                   </h3>
                 </v-flex>
               </v-layout>
@@ -90,6 +96,7 @@
         isFormValid: true,
         email: "",
         password: "",
+        showPassword: false,
         emailRules: [
           // check if email in input
           email => !!email || "邮箱不能为空",
@@ -99,8 +106,19 @@
           // check if password in input
           password => !!password || "密码不能为空",
           password => password.length >= 4 || "密码至少4位"
-        ]
+        ],
+        redirect: this.$route.query.redirect || ""
       };
+    },
+    created() {
+      // console.log("/sigin", !!this.user && this.user); //1 until App.vue created get user
+      this.transfer(this.user);
+      // this.$store.watch(
+      //   (state, getters) => getters.user,
+      //   (newValue, oldValue) => {
+      //     //console.log(newValue, oldValue);//3
+      //   }
+      // );
     },
     computed: {
       ...mapGetters(["loading", "error", "user"])
@@ -108,16 +126,8 @@
     watch: {
       user(newValue, oldValue) {
         // if user changes, redirect to home page
-        console.log(newValue, oldValue, Date.now());
-
-        if (newValue) {
-          const redirect = this.$route.query.redirect;
-          if (redirect) {
-            this.$router.replace(redirect);
-          } else {
-            this.$router.replace("/");
-          }
-        }
+        // console.log(newValue, oldValue, Date.now()); //2
+        this.transfer(newValue);
       }
     },
     methods: {
@@ -127,6 +137,16 @@
             email: this.email,
             password: this.password
           });
+        }
+      },
+      transfer(user) {
+        if (user) {
+          const redirect = this.$route.query.redirect;
+          if (redirect) {
+            this.$router.replace(redirect);
+          } else {
+            this.$router.replace("/");
+          }
         }
       }
     }

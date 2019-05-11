@@ -4,6 +4,9 @@
 #set -e
 
 # build
+git add -A && git commit -m 'v0.0.1'
+git push origin master
+
 npm run build
 
 # navigate into the build output directory

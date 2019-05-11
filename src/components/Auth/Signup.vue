@@ -16,7 +16,7 @@
 
     <!-- Signup from -->
     <v-layout row wrap>
-      <v-flex xs12 sm6 offset-sm3>
+      <v-flex sm8 offset-sm2 md6 offset-md3 lg4 offset-lg4>
         <v-card color="">
           <v-container>
             <v-form
@@ -56,15 +56,17 @@
                   <v-text-field
                     :rules="passwordRules"
                     v-model="password"
-                    prepend-icon="mdi-lock-open-outline"
+                    prepend-icon="mdi-lock-outline"
                     label="密码"
-                    type="password"
+                    :append-icon="showPassword ? 'mdi-eye-outline' : 'mdi-eye-off-outline'"
+                    :type="showPassword ? 'text' : 'password'"
+                    @click:append="showPassword = !showPassword"
                     required
                   ></v-text-field>
                 </v-flex>
               </v-layout>
 
-              <v-layout row>
+              <!-- <v-layout row>
                 <v-flex xs12>
                   <v-text-field
                     :rules="passwordRules"
@@ -75,8 +77,23 @@
                     required
                   ></v-text-field>
                 </v-flex>
-              </v-layout>
-
+              </v-layout> -->
+              <!-- <v-flex xs12>
+                <v-checkbox v-model="form.terms" color="green">
+                  <template v-slot:label>
+                    <div @click.stop="">
+                      Do you accept the
+                      <a href="javascript:;" @click.stop="terms = true"
+                        >terms</a
+                      >
+                      and
+                      <a href="javascript:;" @click.stop="conditions = true"
+                        >conditions?</a
+                      >
+                    </div>
+                  </template>
+                </v-checkbox>
+              </v-flex> -->
               <v-layout row>
                 <v-flex xs12>
                   <v-btn
@@ -117,7 +134,8 @@
         username: "",
         email: "",
         password: "",
-        passwordConfirm: "",
+        showPassword: false,
+        // passwordConfirm: "",
         usernameRules: [
           username => !!username || "用户名不能为空",
           username => username.length >= 2 || "用户名至少2个字符",
@@ -129,20 +147,23 @@
         ],
         passwordRules: [
           password => !!password || "密码不能为空",
-          password => password.length >= 4 || "密码至少4位",
-          confirmation => confirmation === this.password || "密码不匹配"
+          password => password.length >= 4 || "密码至少4位"
+          // confirmation => confirmation === this.password || "密码不匹配"
         ]
       };
     },
     computed: {
       ...mapGetters(["loading", "error", "user"])
     },
+    created() {
+      // console.log("/signup", this.user);
+      this.transfer(this.user);
+    },
     watch: {
-      user(value) {
+      user(newVal, oldVal) {
+        // console.log(newVal, oldVal);
         // if user changes, redirect to home page
-        if (value) {
-          this.$router.push("/");
-        }
+        this.transfer(newValue);
       }
     },
     methods: {
@@ -153,6 +174,16 @@
             email: this.email,
             password: this.password
           });
+        }
+      },
+      transfer(user) {
+        if (user) {
+          const redirect = this.$route.query.redirect;
+          if (redirect) {
+            this.$router.replace(redirect);
+          } else {
+            this.$router.replace("/");
+          }
         }
       }
     }

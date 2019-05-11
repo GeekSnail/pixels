@@ -5,56 +5,62 @@ export const GET_POSTS = gql`
   query {
     getPosts {
       _id
-      title
-      imageUrl
+      # title
+      image {
+        url
+      }
     }
-    Post @client {
-      _id
-      title
-      imageUrl
-    }
+    # Post @client {
+    #   _id
+    #   imageUrl
+    # }
   }
 `;
+// client
+// export const POST = gql`
+//   query {
+//     Post @client {
+//       _id
+//       imageUrl
+//     }
+//   }
+// `;
 
-export const POST = gql`
-  query {
-    Post @client {
-      _id
-      title
-      imageUrl
-    }
-  }
-`;
-
-export const POST_FRAG = gql`
-  fragment post on getPosts {
-    _id
-    title
-    imageUrl
-  }
-`;
+// export const POST_FRAG = gql`
+//   fragment post on getPosts {
+//     _id
+//     image {
+//       url
+//     }
+//   }
+// `;
 
 export const GET_POST = gql`
   query($postId: ID!) {
     getPost(postId: $postId) {
       _id
-      title
-      imageUrl
+      image {
+        url
+        naturalWidth
+        naturalHeight
+      }
       tags
       description
       likes
       created
-      createdBy {
+      createdBy
+      author {
         _id
         username
         avatar
+        created
       }
-      messagesSize
-      messages {
+      commentsSize
+      comments {
         _id
-        messageBody
-        messageDate
-        messageUser {
+        body
+        created
+        user {
           _id
           username
           avatar
@@ -68,48 +74,172 @@ export const SEARCH_POSTS = gql`
   query($searchTerm: String!) {
     searchPosts(searchTerm: $searchTerm) {
       _id
-      title
+      # title
       description
-      imageUrl
+      image {
+        url
+      }
       likes
     }
   }
 `;
 
 export const GET_USER_POSTS = gql`
-  query($userId: ID!) {
-    getUserPosts(userId: $userId) {
+  query($username: String!) {
+    getUserPosts(username: $username) {
       _id
-      title
-      imageUrl
+      # title
+      image {
+        url
+      }
       description
       tags
       created
+      createdBy
       likes
-      messagesSize
+      commentsSize
+    }
+  }
+`;
+
+export const POSTS_BY_IDS = gql`
+  query($ids: [ID]!) {
+    postsByIds(ids: $ids) {
+      _id
+      image {
+        url
+      }
+      description
+      tags
+      created
+      createdBy
+      likes
+      commentsSize
     }
   }
 `;
 
 // User Queries
 export const GET_CURRENT_USER = gql`
+  # query {
+  #   getCurrentUser {
+  #     _id
+  #     email
+  #     username
+  #     avatar
+  #     created
+  #     postsSize
+  #     favoritesSize
+  #     favorites {
+  #       _id
+  #       # title
+  #       image {
+  #         url
+  #       }
+  #       likes
+  #       createdBy
+  #       commentsSize
+  #     }
+  #   }
+  # }
   query {
     getCurrentUser {
       _id
       email
       username
-      password
       avatar
       created
+      postsSize
       favoritesSize
       favorites {
         _id
-        title
-        imageUrl
-        likes
-        messagesSize
+      }
+      # collectionsSize
+    }
+  }
+`;
+
+export const GET_USER = gql`
+  query(
+    $username: String!
+    $withUser: Boolean = true
+    $withPosts: Boolean = true
+    $withFavorites: Boolean = false
+    $withComments: Boolean = false
+  ) {
+    getUser(username: $username) {
+      ...user @include(if: $withUser)
+      posts @include(if: $withPosts) {
+        ...post
+      }
+      favorites @include(if: $withFavorites) {
+        ...post
       }
     }
+  }
+  fragment user on User {
+    _id
+    username
+    avatar
+    created
+    postsSize
+    favoritesSize
+  }
+  fragment post on Post {
+    _id
+    image {
+      url
+      naturalWidth
+      naturalHeight
+    }
+    description
+    created
+    createdBy
+    likes
+    commentsSize
+    comments @include(if: $withComments) {
+      ...comment
+    }
+  }
+  fragment comment on Comment {
+    _id
+    body
+    created
+    user {
+      ...user
+    }
+  }
+`;
+
+export const USER = gql`
+  fragment user on User {
+    __typename
+    _id
+    username
+    avatar
+    created
+    favorites {
+      _id
+    }
+    postsSize
+    favoritesSize
+  }
+`;
+
+export const POST = gql`
+  fragment post on Post {
+    __typename
+    _id
+    image {
+      url
+      naturalWidth
+      naturalHeight
+    }
+    description
+    created
+    createdBy
+    likes
+    commentsSize
   }
 `;
 
@@ -119,19 +249,22 @@ export const INFINITE_SCROLL_POSTS = gql`
       hasMore
       posts {
         _id
-        title
-        imageUrl
+        image {
+          url
+          naturalWidth
+          naturalHeight
+        }
         tags
         description
         likes
         created
-        messages {
-          _id
-        }
-        createdBy {
+        createdBy
+        author {
           _id
           username
+          email
           avatar
+          created
         }
       }
     }
@@ -141,71 +274,69 @@ export const INFINITE_SCROLL_POSTS = gql`
 // posts mutation
 export const ADD_POST = gql`
   mutation(
-    $title: String!
     $image: Upload!
-    $tags: [String]!
+    $naturalWidth: Int!
+    $naturalHeight: Int!
+    $tags: [String]
     $description: String!
     $userId: ID!
   ) {
     addPost(
-      title: $title
       image: $image
+      naturalWidth: $naturalWidth
+      naturalHeight: $naturalHeight
       tags: $tags
       description: $description
       userId: $userId
     ) {
       _id
-      title
-      imageUrl
+      image {
+        url
+        naturalWidth
+        naturalHeight
+      }
       # tags
       # description
       # created
+      createdBy
     }
   }
 `;
 
 export const ADD_POST_ = gql`
   mutation ADD_POST_(
-    $title: String!
     $imageUrl: String!
     $tags: [String]!
-    $description: String! # $userId: ID!
+    $description: String!
+    $userId: ID!
   ) {
     addPost_(
-      title: $title
+      # title: $title
       imageUrl: $imageUrl
       tags: $tags
       description: $description
-    )
-      # userId: $userId
-      @client
+      userId: $userId
+    ) @client
   }
 `;
 
 export const UPDATE_USER_POST = gql`
-  mutation(
-    $postId: ID!
-    $userId: ID!
-    $title: String!
-    # image: Upload!
-    $tags: [String]!
-    $description: String!
-  ) {
+  mutation($postId: ID!, $userId: ID!, $tags: [String], $description: String!) {
     updateUserPost(
       postId: $postId
       userId: $userId
-      title: $title
       tags: $tags
       description: $description
     ) {
       _id
-      title
-      imageUrl
+      image {
+        url
+      }
       tags
       description
       created
       likes
-      createdBy {
+      author {
         _id
         avatar
       }
@@ -221,17 +352,13 @@ export const DELETE_USER_POST = gql`
   }
 `;
 
-export const ADD_POST_MESSAGE = gql`
-  mutation($messageBody: String!, $userId: ID!, $postId: ID!) {
-    addPostMessage(
-      messageBody: $messageBody
-      userId: $userId
-      postId: $postId
-    ) {
+export const ADD_POST_COMMENT = gql`
+  mutation($body: String!, $userId: ID!, $postId: ID!) {
+    addPostComment(body: $body, userId: $userId, postId: $postId) {
       _id
-      messageBody
-      messageDate
-      messageUser {
+      body
+      created
+      user {
         _id
         username
         avatar
@@ -241,30 +368,20 @@ export const ADD_POST_MESSAGE = gql`
 `;
 
 export const LIKE_POST = gql`
-  mutation($postId: ID!, $username: String!) {
-    likePost(postId: $postId, username: $username) {
+  mutation($postId: ID!, $username: String!, $isLike: Boolean!) {
+    likePost(postId: $postId, username: $username, isLike: $isLike) {
       likes
       favorites {
         _id
-        title
-        imageUrl
+        image {
+          url
+        }
+        description
+        tags
+        created
+        createdBy
         likes
-        messagesSize
-      }
-    }
-  }
-`;
-
-export const UNLIKE_POST = gql`
-  mutation($postId: ID!, $username: String!) {
-    unlikePost(postId: $postId, username: $username) {
-      likes
-      favorites {
-        _id
-        title
-        imageUrl
-        likes
-        messagesSize
+        commentsSize
       }
     }
   }
@@ -316,8 +433,11 @@ export const POST_CREATED = gql`
   subscription {
     postCreated {
       _id
-      title
-      imageUrl
+      image {
+        url
+        naturalWidth
+        naturalHeight
+      }
     }
   }
 `;

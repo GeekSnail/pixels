@@ -1,7 +1,7 @@
 <template>
   <!-- <v-container text-xs-center v-if="infiniteScrollPosts">
     <div v-for="post in infiniteScrollPosts.posts" :key="post._id">
-      <img :src="post.imageUrl" height="100px" />
+      <img :src="post.image.url" height="100px" />
       <h3>{{ post.title }}</h3>
     </div>
     <v-btn @click="showMorePosts" v-if="showMoreEnabled">加载更多...</v-btn>
@@ -20,7 +20,7 @@
             <v-card hover>
               <v-img
                 @click.native="goToPost(post._id)"
-                :src="post.imageUrl"
+                :src="post.image.url"
                 :lazy-src="`https://picsum.photos/10/6?image=${index * 5 + 10}`"
                 height="30vh"
                 lazy
@@ -29,11 +29,14 @@
                 <v-card-title primary class="py-2">
                   <div>
                     <h2 class="font-weight-regular overflow-hidden">
-                      {{ post.title }}
+                      {{ post.author.username }}
                     </h2>
                     <span class="grey--text"
                       >{{ post.likes }} likes -
-                      {{ post.messages.length }} comments</span
+                      {{
+                        !!post.comments ? post.comments.length : 0
+                      }}
+                      comments</span
                     >
                   </div>
                 </v-card-title>
@@ -49,12 +52,12 @@
                 <v-card-text v-show="showPostCreator" class="grey lighten-4">
                   <v-list-tile avatar>
                     <v-list-tile-avatar>
-                      <img :src="post.createdBy.avatar" />
+                      <img :src="post.author.avatar" />
                     </v-list-tile-avatar>
 
                     <v-list-tile-content>
                       <v-list-tile-title class="text--primary">{{
-                        post.createdBy.username
+                        post.author.username
                       }}</v-list-tile-title>
                       <v-list-tile-sub-title class="font-weight-thin"
                         >Added

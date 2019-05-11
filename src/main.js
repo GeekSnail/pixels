@@ -17,6 +17,8 @@ import { ApolloLink, Observable, concat } from "apollo-link";
 import { createUploadLink } from "apollo-upload-client";
 import VueApollo from "vue-apollo";
 import FormAlert from "./components/Shared/FormAlert";
+// import { VLazyImagePlugin } from './plugin/VLazyImage';
+// Vue.use(VLazyImagePlugin);
 
 // import ElementUI from "element-ui";
 // import "./assets/styles.scss";
@@ -24,23 +26,35 @@ import FormAlert from "./components/Shared/FormAlert";
 
 import "./assets/global.styl";
 Vue.component("form-alert", FormAlert);
-
+//https://vuejs.org/v2/guide/custom-directive.html#Directive-Hook-Arguments
+//https://blog.csdn.net/webfansplz/article/details/78880582
+Vue.directive("push", {
+  bind: function(el, { value }) {
+    el.addEventListener("click", function() {
+      router.push(value);
+    });
+  }
+});
+// v-push:to="`/${user.username}`"
 Vue.use(VueApollo);
 // Setup ApolloClient
 const cache = new InMemoryCache({
   cacheRedirects: {
     Query: {
       getPost: (_, { postId }, { getCacheKey }) =>
-        getCacheKey({ __typename: "Post", id: postId })
+        getCacheKey({ __typename: "Post", id: postId }),
+      getUser: (_, { userId }, { getCacheKey }) =>
+        getCacheKey({ __typename: "User", id: userId })
     }
-  }
+  },
+  // dataIdFromObject: object => object._id,
+  addTypename: true
 });
 const request = operation => {
   // if no token with key of 'token' in localStorage, add it
   if (!localStorage.token) {
     localStorage.setItem("token", "");
   }
-  // operation add the token to an authorization headers
   operation.setContext({
     headers: {
       //when http options method, request headers:
@@ -74,11 +88,12 @@ console.log(
   process.env.NODE_ENV,
   "=",
   process.env.VUE_APP_GRAPHQL_URI,
-  process.env.VUE_APP_WS_GRQPHQL_URI
+  process.env.VUE_APP_WS_GRQPHQL_URI,
+  process.env.BASE_URL
 );
 const httpLink = createUploadLink({
-  uri: process.env.VUE_APP_GRAPHQL_URI
-  //credentials: "include"
+  uri: process.env.VUE_APP_GRAPHQL_URI,
+  credentials: "include"
 });
 // 创建订阅的 websocket 连接
 const wsLink = new WebSocketLink({
@@ -90,8 +105,7 @@ const wsLink = new WebSocketLink({
     }
   }
 });
-// 使用分割连接的功能
-// 你可以根据发送的操作类型将数据发送到不同的连接
+// 使用分割连接的功能, 你可以根据发送的操作类型将数据发送到不同的连接
 const link = split(
   // 根据操作类型分割
   ({ query }) => {
@@ -159,8 +173,9 @@ export const defaultClient = new ApolloClient({
         Post: {
           __typename: "Post",
           _id: -1,
-          title: "",
           imageUrl: "",
+          naturalWidth: 0,
+          naturalHeight: 0,
           tags: [],
           description: ""
         }
@@ -185,6 +200,7 @@ export const defaultClient = new ApolloClient({
       // pollInterval: 1000
     }
   },
+  queryDeduplication: true,
   connectToDevTools: true,
   cache
   // uri: "http://localhost:4000/graphiql",
@@ -238,6 +254,8 @@ new Vue({
   render: h => h(App),
   created() {
     // execute getCurrentUser query
-    this.$store.dispatch("getCurrentUser");
+    if (!this.$store.getters.user) {
+      this.$store.dispatch("getCurrentUser");
+    }
   }
 }).$mount("#app");

@@ -1,17 +1,23 @@
 <template>
-  <v-container v-if="getPost" class=" mb-5" flexbox center>
+  <v-container v-if="getPost" class="pd0 mb-5" flexbox center>
     <v-flex xs12 sm10 offset-sm1 md8 offset-md2>
       <v-layout row wrap>
         <v-flex>
           <v-card hover>
             <v-card-title class="py-2">
-              <v-list-tile-avatar color="grey darken-3" class="">
-                <v-img
-                  class="elevation-6"
-                  :src="getPost.createdBy.avatar"
-                ></v-img>
+              <v-list-tile-avatar
+                color="grey light-3"
+                class=""
+                v-push:to="`/${getPost.author.username}`"
+              >
+                <v-img class="elevation-6" :src="getPost.author.avatar"></v-img>
               </v-list-tile-avatar>
-              <h2 class="font-weight-regular">{{ getPost.title }}</h2>
+              <h2
+                class="font-weight-regular"
+                v-push:to="`/${getPost.author.username}`"
+              >
+                {{ getPost.author.username }}
+              </h2>
               <v-btn @click="toggleLike" icon v-if="user" class="ml-3">
                 <v-icon middle :color="isPostLiked(getPost._id)?'red':'grey'"
                   >mdi-heart</v-icon
@@ -29,8 +35,8 @@
               <v-img
                 @click="toggleImageDialog"
                 slot="activator"
-                :aspect-ratio="16/9"
-                :src="getPost.imageUrl"
+                lazy-src="https://picsum.photos/10/6?image=10"
+                :src="getPost.image.url"
                 id="post__image"
               ></v-img>
             </v-tooltip>
@@ -40,7 +46,7 @@
                 <v-img
                   @click="toggleImageDialog"
                   :aspect-ratio="1"
-                  :src="getPost.imageUrl"
+                  :src="getPost.image.url"
                   height="100vh"
                 ></v-img>
               </v-card>
@@ -58,30 +64,30 @@
         </v-flex>
       </v-layout>
 
-      <!-- messages section -->
+      <!-- comments section -->
       <div class="mt-3">
-        <!-- message input -->
+        <!-- comment input -->
         <v-layout class="" v-if="user">
           <v-flex xs12>
             <v-form
               v-model="isFormValid"
               lazy-validation
               ref="form"
-              @submit.prevent="addPostMessage"
+              @submit.prevent="addPostComment"
             >
               <v-layout row>
                 <v-textarea
-                  v-model="messageBody"
-                  :rules="messageRules"
+                  v-model="commentBody"
+                  :rules="commentRules"
                   counter="150"
                   solo
                   auto-grow
                   rows="2"
                   clearable
-                  :append-outer-icon="messageBody && 'mdi-send'"
+                  :append-icon="commentBody && 'mdi-send'"
                   label="此刻的想法..."
                   type="text"
-                  @click:append-outer="addPostMessage"
+                  @click:append="addPostComment"
                   prepend-inner-icon="mdi-comment-outline"
                   required
                 ></v-textarea>
@@ -89,33 +95,32 @@
             </v-form>
           </v-flex>
         </v-layout>
-        <!-- messages -->
+        <!-- comments -->
         <v-layout row wrap>
           <v-flex xs12>
             <v-list subheader two-line>
-              <v-subheader>评论 ({{ getPost.messages.length }})</v-subheader>
+              <v-subheader>评论 ({{ getPost.comments.length }})</v-subheader>
 
-              <template v-for="message in getPost.messages">
-                <v-divider :key="message._id"></v-divider>
+              <template v-for="comment in getPost.comments">
+                <v-divider :key="comment._id"></v-divider>
                 <v-list-tile avatar>
                   <v-list-tile-avatar>
-                    <img :src="message.messageUser.avatar" />
+                    <img :src="comment.user.avatar" />
                   </v-list-tile-avatar>
 
                   <v-list-tile-content>
-                    <v-list-tile-title>{{
-                      message.messageBody
-                    }}</v-list-tile-title>
+                    <v-list-tile-title>{{ comment.body }}</v-list-tile-title>
                     <v-list-tile-sub-title
-                      >{{ message.messageUser.username }}
+                      v-push:to="`/${comment.user.username}`"
+                      >{{ comment.user.username }}
                       <span class="grey--text text-lighten-1 hidden-xs-only">{{
-                        getTimeFromNow(message.messageDate)
+                        getTimeFromNow(comment.created)
                       }}</span>
                     </v-list-tile-sub-title>
                   </v-list-tile-content>
 
                   <v-list-tile-action class="hidden-xs-only">
-                    <v-icon :color="isOwnMessage(message)?'accent':'grey'"
+                    <v-icon :color="isOwnComment(comment)?'accent':'grey'"
                       >mdi-chat</v-icon
                     >
                   </v-list-tile-action>
@@ -134,7 +139,10 @@
   import { mapGetters } from "vuex";
   import {
     GET_POST,
-    ADD_POST_MESSAGE,
+    USER,
+    POST,
+    GET_USER,
+    ADD_POST_COMMENT,
     LIKE_POST,
     UNLIKE_POST
   } from "../../queries";
@@ -145,11 +153,11 @@
       return {
         postLiked: false,
         dialog: false,
-        messageBody: "",
+        commentBody: "",
         isFormValid: true,
-        messageRules: [
-          message => !!message || "内容不得为空",
-          message => (message && message.length <= 150) || "字数不得超过150"
+        commentRules: [
+          comment => !!comment || "内容不得为空",
+          comment => (comment && comment.length <= 150) || "字数不得超过150"
         ]
       };
     },
@@ -164,24 +172,25 @@
       }
     },
     computed: {
-      ...mapGetters(["user", "userFavorites"])
+      ...mapGetters(["user", "_user"])
     },
     methods: {
       getTimeFromNow(time) {
         return moment(new Date(Number(time))).fromNow();
       },
       toggleLike() {
-        if (this.postLiked) {
-          this.unlikePost();
-        } else {
-          this.likePost();
-        }
+        this.likePost(this.postLiked ? false : true);
+        // if (this.postLiked) {
+        //   this.unlikePost();
+        // } else {
+        //   this.likePost();
+        // }
       },
       isPostLiked() {
         // check if user favorites includes post with id of 'postid'
         if (
-          this.userFavorites &&
-          this.userFavorites.some(fave => fave._id === this.postId)
+          this.user.favorites &&
+          this.user.favorites.some(fave => fave._id === this.postId)
         ) {
           this.postLiked = true;
           return true;
@@ -198,114 +207,194 @@
           this.dialog = !this.dialog;
         }
       },
-      isOwnMessage(message) {
-        return this.user && this.user._id === message.messageUser._id;
+      isOwnComment(comment) {
+        return this.user && this.user._id === comment.user._id;
       },
 
-      addPostMessage() {
+      addPostComment() {
         if (this.$refs.form.validate()) {
           const variables = {
-            messageBody: this.messageBody,
+            body: this.commentBody,
             userId: this.user._id,
             postId: this.postId
           };
           this.$apollo
             .mutate({
-              mutation: ADD_POST_MESSAGE,
+              mutation: ADD_POST_COMMENT,
               variables,
-              update: (cache, { data: { addPostMessage } }) => {
+              update: (cache, { data: { addPostComment } }) => {
                 const data = cache.readQuery({
                   query: GET_POST,
                   variables: { postId: this.postId }
                 });
                 // console.log("data", data);
-                // console.log("add post message", addPostMessage);
-                data.getPost.messages.unshift(addPostMessage);
+                // console.log("add post comment", addPostComment);
+                data.getPost.commentsSize++;
+                data.getPost.comments.unshift(addPostComment);
                 cache.writeQuery({
                   query: GET_POST,
                   variables: { postId: this.postId },
                   data
                 });
+                // if(this._user.username === this.post.createdBy) {
+                //   this.
+                // }
+                console.log(
+                  cache.readQuery({
+                    query: GET_POST,
+                    variables: { postId: this.postId }
+                  }),
+                  cache.readFragment({
+                    fragment: POST,
+                    id: "Post:" + this.postId
+                  })
+                );
               }
             })
             .then(({ data }) => {
               this.$refs.form.reset();
-              console.log(data.addPostMessage);
+              console.log(data.addPostComment);
             })
             .catch(err => console.error(err));
         }
       },
-      likePost() {
+      likePost(isLike) {
         const variables = {
           postId: this.postId,
-          username: this.user.username
+          username: this.user.username,
+          isLike
         };
         this.$apollo
           .mutate({
             mutation: LIKE_POST,
             variables,
             update: (cache, { data: { likePost } }) => {
-              const data = cache.readQuery({
+              let postData = cache.readQuery({
                 query: GET_POST,
                 variables: { postId: this.postId }
               });
-              // data.getPost.likes++;
+              if (
+                cache.data.data.ROOT_QUERY[
+                  'getUser({"username":"' + this.user.username + '"})'
+                ]
+              ) {
+                // let userData = cache.readQuery({
+                //   query: GET_USER,
+                //   variables: { username: this.user.username }
+                // });
+                // console.log("getUser", userData.getUser);
+                // userData.getUser.favorites = likePost.favorites;
+                // userData.getUser.favoritesSize = likePost.favorites.length;
+                console.log(likePost);
+                // cache.writeQuery({
+                //   query: GET_USER,
+                //   variables: { username: this.user.username },
+                //   data: userData
+                // });
+                let userData = cache.readFragment({
+                  fragment: USER,
+                  id: "User:" + this.user._id
+                });
+                userData.favoritesSize = likePost.favorites.length;
+                userData.favorites = likePost.favorites;
+                cache.writeFragment({
+                  fragment: USER,
+                  id: "User:" + this.user._id,
+                  data: userData
+                });
+                console.log(
+                  // cache.readQuery({
+                  //   query: GET_USER,
+                  //   variables: { username: this.user.username }
+                  // }),
+                  cache.readFragment({
+                    fragment: USER,
+                    id: "User:" + this.user._id
+                  })
+                );
+              }
+
+              // let user = cache.readFragment({
+              //   fragment: USER,
+              //   id: "User:" + this.user._id
+              // });
+              if (!isLike) {
+                postData.getPost.likes--;
+                // user.favoritesSize--;
+                // user.favorites.splice(0, 1);
+              } else {
+                // console.log(user.favoritesSize);
+                // user.favoritesSize++;
+                // user.favorites.unshift({ _id: this.postId });
+                // console.log(user.favoritesSize);
+              }
+              // cache.writeFragment({
+              //   fragment: USER,
+              //   id: "User:" + this.user._id,
+              //   data: user
+              // });
+
+              console.log(postData.getPost, postData.getPost.likes);
               cache.writeQuery({
                 query: GET_POST,
                 variables: { postId: this.postId },
-                data
+                data: postData
               });
             }
           })
           .then(({ data }) => {
-            // console.log("user", this.user);
-            // console.log("like post", data.likePost);
+            console.log("user", this.user);
+            console.log("like post", data.likePost);
             const updatedUser = {
               ...this.user,
+              favoritesSize: data.likePost.favorites.length,
               favorites: data.likePost.favorites
             };
             this.$store.commit("setUser", updatedUser);
           })
           .catch(err => console.error(err));
-      },
-      unlikePost() {
-        const variables = {
-          postId: this.postId,
-          username: this.user.username
-        };
-        this.$apollo
-          .mutate({
-            mutation: UNLIKE_POST,
-            variables,
-            update: (cache, { data: { unlikePost } }) => {
-              const data = cache.readQuery({
-                query: GET_POST,
-                variables: { postId: this.postId }
-              });
-              data.getPost.likes--;
-              cache.writeQuery({
-                query: GET_POST,
-                variables: { postId: this.postId },
-                data
-              });
-            }
-          })
-          .then(({ data }) => {
-            // console.log("user", this.user);
-            // console.log("like post", data.likePost);
-            const updatedUser = {
-              ...this.user,
-              favorites: data.unlikePost.favorites
-            };
-            this.$store.commit("setUser", updatedUser);
-          })
-          .catch(err => console.error(err));
       }
+      // unlikePost() {
+      //   const variables = {
+      //     postId: this.postId,
+      //     username: this.user.username
+      //   };
+      //   this.$apollo
+      //     .mutate({
+      //       mutation: LIKE_POST,
+      //       variables,
+      //       update: (cache, { data: { unlikePost } }) => {
+      //         const data = cache.readQuery({
+      //           query: GET_POST,
+      //           variables: { postId: this.postId }
+      //         });
+      //         data.getPost.likes--;
+      //         cache.writeQuery({
+      //           query: GET_POST,
+      //           variables: { postId: this.postId },
+      //           data
+      //         });
+      //       }
+      //     })
+      //     .then(({ data }) => {
+      //       // console.log("user", this.user);
+      //       // console.log("like post", data.likePost);
+      //       const updatedUser = {
+      //         ...this.user,
+      //         favorites: data.unlikePost.favorites
+      //       };
+      //       this.$store.commit("setUser", updatedUser);
+      //     })
+      //     .catch(err => console.error(err));
+      // }
     }
   };
 </script>
-<style>
+<style lang="stylus">
   #post__image {
     /* height: 400px !important; */
   }
+  @media only screen and (max-width: 600px)
+    .pd0
+      padding 0;
 </style>
