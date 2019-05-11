@@ -33,6 +33,38 @@ export function authGuard(to, from, next) {
     next();
   }
 }
+export function auth(to, from, next) {
+  // refresh or no user login
+  if (!store.getters.user) {
+    // no user token
+    if (!localStorage.getItem("token")) {
+      console.log("user not login");
+      next();
+    } // had token
+    else {
+      console.log("user had token");
+      store.watch(
+        state => state.user,
+        () => {
+          console.log(store.getters.user);
+          if (!store.getters.user) {
+            console.log("user token expired or invalid");
+            next();
+          } else {
+            const redirect = to.query.redirect;
+            if (redirect) {
+              next(redirect);
+            } else {
+              next("/");
+            }
+          }
+        }
+      );
+    }
+  } else {
+    next("/");
+  }
+}
 function loadUser(to) {
   // visit isn't current user
   if (

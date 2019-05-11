@@ -25,7 +25,7 @@ const Upload = () =>
   import(/* webpackChunkName: "Upload" */ "./components/Posts/Upload.vue");
 const NotFound = () =>
   import(/* webpackChunkName: "NotFound" */ "./components/NotFound");
-import { authGuard, getUser } from "./beforeEnter";
+import { authGuard, auth, getUser } from "./beforeEnter";
 
 Vue.use(Router);
 
@@ -42,15 +42,17 @@ export default new Router({
       path: "/signin",
       name: "signin",
       component: Signin,
-      beforeEnter: (to, from, next) => {
-        console.log("signin", to.path, "...", from.path, Date.now());
-        next();
-      }
+      beforeEnter: auth
+      // beforeEnter: (to, from, next) => {
+      //   console.log("signin", to.path, "...", from.path, Date.now());
+      //   next();
+      // }
     },
     {
       path: "/signup",
       name: "signup",
-      component: Signup
+      component: Signup,
+      beforeEnter: auth
     },
     {
       path: "/explorer",
