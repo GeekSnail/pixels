@@ -190,7 +190,7 @@
 </template>
 
 <script>
-  import { mapGetters } from "vuex";
+  import { mapGetters,mapMutations } from "vuex";
   export default {
     name: "Profile",
     data() {
@@ -239,7 +239,15 @@
         this.changePostsByRoute(this.$route);
       }
     },
+    mounted(){
+      this.$store.watch((state,getters)=>getters._user,
+        (newVal,oldVal) =>{
+          console.log(newVal,oldVal)
+        }
+      )
+    },
     methods: {
+      ...mapMutations(["set_user"]),
       changePostsByRoute(to) {
         console.log('to',to, this.$route)
         // /xxx /xxx/ /likes /likes/ , /xxx/likes /xxx/likes/ /likes/likes /likes/likes/
@@ -333,12 +341,20 @@
           this.isEditDialog = false
         }
       },
-      deleteUserPost(post) {
+      async deleteUserPost(post) {
         this.loadPost(post, false) // get postId
         const isDeletePost = window.confirm('你确定要删除这个帖子？')
         if(isDeletePost) {
           this.$store.dispatch('deleteUserPost', {
-            postId: this.post._id
+            postId: this.post._id,username: this.user.username
+          }).then(()=>{
+            // this.set_user(this.$store.getters._user);
+            // console.log(this.$store.getters._user,this._user)
+            const index = this._user.posts.findIndex(
+              e => e._id === post._id
+            );
+            this._user.posts.splice(index,1)
+            this._user.postsSize--
           })
         }
       }

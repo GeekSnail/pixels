@@ -57,6 +57,7 @@ export default new Vuex.Store({
       state.user = payload;
     },
     set_user: (state, payload) => {
+      console.log(payload);
       state._user = payload;
     },
     add_userPost: (state, payload) => {
@@ -64,6 +65,16 @@ export default new Vuex.Store({
         console.log("add_user_post");
         state._user.posts.unshift(payload);
       }
+    },
+    set_userPosts: (state, payload) => {
+      // state.userPosts = payload;
+      // state._user.posts = payload;
+      Vue.set(state._user, "posts", payload);
+      console.log(state._user.posts);
+    },
+    set_userFavorites: (state, payload) => {
+      // state.userPosts = payload;
+      state._user.favorites = payload;
     },
     setLoading: (state, payload) => {
       state.loading = payload;
@@ -349,14 +360,83 @@ export default new Vuex.Store({
           variables: payload
         })
         .then(({ data }) => {
-          const index = state.userPosts.findIndex(
-            post => post._id === data.deleteUserPost._id
+          // const index = state.userPosts.findIndex(
+          //   post => post._id === data.deleteUserPost._id
+          // );
+          // const userPosts = [
+          //   ...state.userPosts.slice(0, index),
+          //   ...state.userPosts.slice(index + 1)
+          // ];
+          // commit("setUserPosts", userPosts);
+
+          // let userData = apolloClient.cache.readFragment({
+          //   fragment: USER,
+          //   id: "User:" + payload.userId
+          // });
+          let _user = state._user;
+          if (state._user.posts) {
+            const index = state._user.posts.findIndex(
+              post => post._id === data.deleteUserPost._id
+            );
+            console.log(index, state._user.posts.length);
+            if (index > -1) {
+              console.log(2);
+              // const userPosts = [
+              //   ...state._user.posts.slice(0, index),
+              //   ...state._user.posts.slice(index + 1)
+              // ];
+              // commit("set_userPosts", userPosts);
+
+              _user.posts = [
+                ...state._user.posts.slice(0, index),
+                ...state._user.posts.slice(index + 1)
+              ];
+              _user.postsSize--;
+              console.log(_user);
+            }
+          }
+          console.log("3");
+          if (state._user.favorites) {
+            const index = state._user.favorites.findIndex(
+              post => post._id === data.deleteUserPost._id
+            );
+            console.log(index, state._user.favorites.length);
+            if (index > -1) {
+              const userFavorites = [
+                state._user.favorites.splice(0, index),
+                state._user.favorites.slice(index + 1)
+              ];
+              _user.favoritesSize--;
+            }
+          }
+          commit("set_user", _user);
+          // let userData = apolloClient.cache.readQuery({
+          //   query: GET_USER,
+          //   variables: { username: payload.username }
+          // });
+          // console.log(userData, payload.userId);
+          // userData.getUser.posts.splice(data.addPost);
+          // apolloClient.cache.writeFragment({
+          //   fragment: USER,
+          //   id: "User:" + payload.userId,
+          //   data: userData
+          // });
+          // apolloClient.cache.writeQuery({
+          //   query: GET_USER,
+          //   variables: { username: payload.username },
+          //   data: userData
+          // });
+          console.log(
+            "del",
+            apolloClient.cache.readQuery({
+              query: GET_USER,
+              variables: { username: payload.username }
+            }),
+            apolloClient.cache.readFragment({
+              fragment: USER,
+              id: "User:" + payload.username
+            })
           );
-          const userPosts = [
-            ...state.userPosts.slice(0, index),
-            ...state.userPosts.slice(index + 1)
-          ];
-          commit("setUserPosts", userPosts);
         })
         .catch(err => console.error(err));
     },

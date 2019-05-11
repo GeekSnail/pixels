@@ -22,7 +22,7 @@
                 {{ !!_user && _user.username }}
               </div>
               <div class=" mt-3 font-weight-regular">
-                <span v-if="userPosts" class="mr-2"
+                <span v-if="_user.posts" class="mr-2"
                   >{{ !!_user && _user.postsSize }}
                   帖子
                 </span>
@@ -157,7 +157,7 @@
     //   }
     // },
     computed: {
-      ...mapGetters(["user", "userPosts", "_user"]),
+      ...mapGetters(["user", "_user"]),
       tabs() {
         return [
           {
@@ -183,7 +183,14 @@
         !!this._user && this._user.username
       );
     },
-
+    mounted() {
+      this.$store.watch(
+        (state, getters) => getters._user,
+        (newVal, oldVal) => {
+          console.log(newVal, oldVal);
+        }
+      );
+    },
     beforeRouteUpdate(to, from, next) {
       // this.activeTab = to.path;
       console.log("beforeUpdate", this.activeTab);
@@ -198,12 +205,12 @@
       user(newVal, oldVal) {
         console.log("user", newVal, oldVal);
       },
-      userPosts(newVal, oldVal) {
-        console.log("userPosts", newVal, oldVal);
-        if (newVal) {
-          this._user.posts = this.userPosts;
-        }
-      },
+      // userPosts(newVal, oldVal) {
+      //   console.log("userPosts", newVal, oldVal);
+      //   if (newVal) {
+      //     this._user.posts = this.userPosts;
+      //   }
+      // },
       _user(newVal, oldVal) {
         console.log("_user", newVal, oldVal, this._user); //outer view hooked watch varibles first
       }

@@ -345,8 +345,8 @@ export const UPDATE_USER_POST = gql`
 `;
 
 export const DELETE_USER_POST = gql`
-  mutation($postId: ID!) {
-    deleteUserPost(postId: $postId) {
+  mutation($postId: ID!, $username: String!) {
+    deleteUserPost(postId: $postId, username: $username) {
       _id
     }
   }
